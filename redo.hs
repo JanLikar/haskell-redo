@@ -1,4 +1,18 @@
-import System.Process
+import System.Process (createProcess, waitForProcess,shell)
+import System.Environment (getArgs)
 
+main :: IO ()
 main = do
-   createProcess $ shell "sh redo.do" 
+  args <- getArgs
+
+  mapM redo args
+
+  putStrLn "Done"
+  return ()
+
+
+redo :: String -> IO ()
+redo target = do
+  (_, _, _, ph) <- createProcess $ shell ("sh " ++ target ++ ".do")
+  waitForProcess ph
+  return ()
