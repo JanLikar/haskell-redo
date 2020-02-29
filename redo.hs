@@ -11,7 +11,7 @@ main :: IO ()
 main = do
   args <- getArgs
 
-  mapM redo args
+  _ <- mapM redo args
 
   return ()
 
@@ -22,16 +22,17 @@ redo target = do
   path <- scriptPath target
 
   case path of
-    Nothing -> error $ "No .do file for target " ++ target
+    Nothing -> hPutStrLn stderr ("No .do file for target " ++ target)
     Just p -> do
       (_, _, _, ph) <- createProcess $ shell $ unwords ["sh ", p, "0", takeBaseName target, tmp, " > ", tmp]
       exitCode <- waitForProcess ph
 
       case exitCode of
         ExitSuccess -> do renameFile tmp target
-        ExitFailure e -> do
+        ExitFailure _ -> do
           hPutStrLn stderr "Redo script exited with a non-zero exit code."
           removeFile tmp
+
 
 scriptPath :: FilePath -> IO (Maybe FilePath)
 scriptPath target =
