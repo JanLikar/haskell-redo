@@ -1,11 +1,13 @@
 import Control.Monad (filterM, liftM)
+import Data.Map.Lazy (adjust, insert, fromList, toList)
 import Data.Maybe (listToMaybe)
+import Debug.Trace (trace)
 import System.Directory (doesFileExist, removeFile, renameFile)
 import System.Exit (ExitCode(..))
 import System.FilePath (hasExtension, replaceBaseName, takeBaseName)
 import System.IO (hPutStrLn, stderr)
-import System.Process (createProcess, waitForProcess, shell)
-import System.Environment (getArgs)
+import System.Process (createProcess, waitForProcess, shell, CreateProcess(..))
+import System.Environment (getArgs, getEnvironment)
 
 main :: IO ()
 main = do
@@ -23,8 +25,12 @@ redo target = do
 
   case path of
     Nothing -> hPutStrLn stderr ("No .do file for target " ++ target)
-    Just p -> do
-      (_, _, _, ph) <- createProcess $ shell $ unwords ["sh ", p, "0", takeBaseName target, tmp, " > ", tmp]
+    Just path' -> do
+      let cmd = unwords ["sh ", path', "0", takeBaseName target, tmp, " > ", tmp]
+      current_env <- getEnvironment
+      let newEnv = toList (adjust (++ ":.") "PATH" $ insert "REDO_TARGET" target (fromList current_env))
+
+      (_, _, _, ph) <- createProcess $ (shell cmd) { env = Just(newEnv) }
       exitCode <- waitForProcess ph
 
       case exitCode of
