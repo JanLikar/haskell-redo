@@ -52,7 +52,7 @@ scriptPath :: FilePath -> IO (Maybe FilePath)
 scriptPath target =
     listToMaybe `fmap` filterM doesFileExist candidates
   where
-    candidates = [target ++ ".do"] : [replaceBaseName target "default.do" | hasExtension target]
+    candidates = (target ++ ".do") : [replaceBaseName target "default.do" | hasExtension target]
 
 upToDate :: String -> IO Bool
 upToDate target = catch
@@ -70,5 +70,6 @@ upToDate target = catch
     depUpToDate :: FilePath -> IO Bool
     depUpToDate dep = catch
       (do oldHash <- readFile $ depDir </> dep
-          return True)
+          hPutStrLn stderr oldHash
+          return False)
       (\e -> return (ioeGetErrorType e == InappropriateType))
