@@ -1,7 +1,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
+import Data.Digest.Pure.MD5 (md5)
+
 import Control.Exception (catch, IOException)
 import Control.Monad (filterM, liftM)
+import qualified Data.ByteString.Lazy as BL
 import Data.Map.Lazy (adjust, insert, fromList, toList)
 import Data.Maybe (listToMaybe)
 import Debug.Trace (trace)
@@ -9,7 +12,7 @@ import GHC.IO.Exception (IOErrorType(InappropriateType))
 import System.Directory (doesFileExist, getDirectoryContents, removeFile, renameFile)
 import System.Exit (ExitCode(..))
 import System.FilePath (hasExtension, replaceBaseName, takeBaseName, (</>))
-import System.IO (hPutStrLn, stderr)
+import System.IO (hPutStrLn, stderr, hGetLine, withFile, IOMode(..))
 import System.IO.Error (ioeGetErrorType)
 import System.Process (createProcess, waitForProcess, shell, CreateProcess(..))
 import System.Environment (getArgs, getEnvironment)
@@ -69,7 +72,7 @@ upToDate target = catch
 
     depUpToDate :: FilePath -> IO Bool
     depUpToDate dep = catch
-      (do oldHash <- readFile $ depDir </> dep
-          hPutStrLn stderr oldHash
-          return False)
+      (do oldHash <- withFile (depDir </> dep) ReadMode hGetLine
+          newHash <- md5 `fmap` BL.readFile dep
+          return $ oldHash == show newHash)
       (\e -> return (ioeGetErrorType e == InappropriateType))
